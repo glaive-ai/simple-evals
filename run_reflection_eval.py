@@ -30,7 +30,7 @@ def main():
 
     samplers = {
         "reflection_70b": ChatCompletionSampler(
-            model="",
+            model="glaiveai/Reflection-Llama-3.1-70B",
             system_message=REFLECTION_SYSTEM_MESSAGE,
             client=client
         ),

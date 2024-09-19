@@ -28,7 +28,7 @@ def write_to_jsonl(data, filename):
 INPUT_FILE = "data/ifeval_input_data.jsonl"
 OUTPUT_FILE = "data/reflection_output.jsonl"
 MAX_WORKERS = 128
-MODEL_NAME = ""
+MODEL_NAME = "glaiveai/Reflection-Llama-3.1-70B"
 MAX_TOKENS = 6000
 TEMPERATURE = 0.0
 

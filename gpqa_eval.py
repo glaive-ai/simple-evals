@@ -25,7 +25,7 @@ class GPQAEval(Eval):
         num_examples: int | None = None,  # restrict to a subset of the data for debugging
     ):
         df = pandas.read_csv(
-                "gpqa.csv" # download file from https://huggingface.co/datasets/Idavidrein/gpqa/blob/main/gpqa_main.csv
+                "gpqa_main.csv" # download file from https://huggingface.co/datasets/Idavidrein/gpqa/blob/main/gpqa_main.csv
         )
         examples = [row.to_dict() for _, row in df.iterrows()]
         rng = random.Random(0)
