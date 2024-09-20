@@ -1,5 +1,7 @@
 import json
 import time
+import sys
+import argparse
 
 import pandas as pd
 
@@ -23,29 +25,40 @@ from sampler.chat_completion_sampler import OPENAI_SYSTEM_MESSAGE_API
 def main():
     debug = True
 
+    parser = argparse.ArgumentParser(description='Run evaluations on selected samplers.')
+    parser.add_argument('samplers', nargs='+', help='List of samplers to run')
+    args = parser.parse_args()
+
     # init your client
     client = OpenAI(
     base_url="http://0.0.0.0:5050/v1",
     api_key="test",
     )
 
-    samplers = {
+    all_samplers = {
         "reflection_70b": ChatCompletionSampler(
             model="glaiveai/Reflection-Llama-3.1-70B",
             system_message=REFLECTION_SYSTEM_MESSAGE,
             client=client
         ),
-        # "llama_3.1_70b": ChatCompletionSampler(
-        #     model="meta-llama/Meta-Llama-3.1-70B-Instruct",
-        #     system_message=OPENAI_SYSTEM_MESSAGE_API,
-        #     client=client
-        # ),
-        # "llama_3.1_70b_reflection_prompt": ChatCompletionSampler(
-        #     model="meta-llama/Meta-Llama-3.1-70B-Instruct",
-        #     system_message=REFLECTION_SYSTEM_MESSAGE,
-        #     client=client
-        # ),
+        "llama_3.1_70b": ChatCompletionSampler(
+            model="meta-llama/Meta-Llama-3.1-70B-Instruct",
+            system_message=OPENAI_SYSTEM_MESSAGE_API,
+            client=client
+        ),
+        "llama_3.1_70b_reflection_prompt": ChatCompletionSampler(
+            model="meta-llama/Meta-Llama-3.1-70B-Instruct",
+            system_message=REFLECTION_SYSTEM_MESSAGE,
+            client=client
+        ),
     }
+
+    # Select only the samplers specified in the command line arguments
+    samplers = {k: v for k, v in all_samplers.items() if k in args.samplers}
+
+    if not samplers:
+        print("Error: No valid samplers selected. Please choose from:", ", ".join(all_samplers.keys()))
+        sys.exit(1)
 
     equality_checker = CheckerSampler(model="gpt-4-turbo-preview")
     # ^^^ used for fuzzy matching, just for math
