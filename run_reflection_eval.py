@@ -25,8 +25,11 @@ from sampler.chat_completion_sampler import OPENAI_SYSTEM_MESSAGE_API
 def main():
     debug = True
 
-    parser = argparse.ArgumentParser(description='Run evaluations on selected samplers.')
+    parser = argparse.ArgumentParser(description='Run evaluations on selected samplers and evals.')
     parser.add_argument('samplers', nargs='+', help='List of samplers to run')
+    parser.add_argument('--evals', nargs='+', choices=['mmlu', 'humaneval', 'gpqa', 'gsm8k', 'math'], 
+                        default=['mmlu', 'humaneval', 'gpqa', 'gsm8k', 'math'],
+                        help='List of evaluations to run')
     args = parser.parse_args()
 
     # init your client
@@ -79,10 +82,10 @@ def main():
             case "gsm8k":
                 return GSMEval(equality_checker=equality_checker)
             case _:
-                raise Exception(f"Unrecoginized eval type: {eval_name}")
+                raise Exception(f"Unrecognized eval type: {eval_name}")
 
     evals = {
-        eval_name: get_evals(eval_name) for eval_name in ["mmlu","humaneval","gpqa","gsm8k","math"]
+        eval_name: get_evals(eval_name) for eval_name in args.evals
     }
     debug_suffix = "_DEBUG" if debug else ""
     mergekey2resultpath = {}
