@@ -31,6 +31,7 @@ class GSMEval(Eval):
             if not matches:
                 extracted_answer = ""
                 score = 0.0
+                correct_answer = ""  # Initialize correct_answer here
             else:
                 extracted_answer = matches[-1]
                 correct_answer = row["answer"].split('####')[1].strip().replace("%","")
