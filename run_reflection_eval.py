@@ -26,7 +26,7 @@ def main():
     debug = True
 
     parser = argparse.ArgumentParser(description='Run evaluations on selected samplers and evals.')
-    parser.add_argument('samplers', nargs='+', help='List of samplers to run')
+    parser.add_argument('samplers', nargs='*', default=['reflection_70b'], help='List of samplers to run')
     parser.add_argument('--evals', nargs='+', choices=['mmlu', 'humaneval', 'gpqa', 'gsm8k', 'math'], 
                         default=['mmlu', 'humaneval', 'gpqa', 'gsm8k', 'math'],
                         help='List of evaluations to run')
