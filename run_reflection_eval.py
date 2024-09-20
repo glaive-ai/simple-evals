@@ -17,6 +17,7 @@ from sampler.reflection_sampler import (
 )
 
 from sampler.chat_completion_sampler import ChatCompletionSampler as CheckerSampler
+from sampler.chat_completion_sampler import OPENAI_SYSTEM_MESSAGE_API
 
 
 def main():
@@ -34,6 +35,16 @@ def main():
             system_message=REFLECTION_SYSTEM_MESSAGE,
             client=client
         ),
+        # "llama_3.1_70b": ChatCompletionSampler(
+        #     model="meta-llama/Meta-Llama-3.1-70B-Instruct",
+        #     system_message=OPENAI_SYSTEM_MESSAGE_API,
+        #     client=client
+        # ),
+        # "llama_3.1_70b_reflection_prompt": ChatCompletionSampler(
+        #     model="meta-llama/Meta-Llama-3.1-70B-Instruct",
+        #     system_message=REFLECTION_SYSTEM_MESSAGE,
+        #     client=client
+        # ),
     }
 
     equality_checker = CheckerSampler(model="gpt-4-turbo-preview")

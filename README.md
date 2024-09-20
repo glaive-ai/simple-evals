@@ -25,6 +25,7 @@ pip install -e human-eval
 2. Start vllm server locally: `vllm serve glaiveai/Reflection-Llama-3.1-70B --host 0.0.0.0 --port 5050 --tensor-parallel 8`
 3. Set OPENAI_API_KEY env var for running the equality checker.
 4. Run `python3 run_reflection_eval.py`
+5. You can run evals on any model being served using vllm by creating a sampler for it, example samplers for llama 3.1 70B have been commented in the run_reflection_eval.py file.
 
 ### Running ifeval
 
