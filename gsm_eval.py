@@ -27,10 +27,14 @@ class GSMEval(Eval):
                 sampler._pack_message(content=QUERY_TEMPLATE.format(**row), role="user")
             ]
             response_text = sampler(prompt_messages)
-            match = re.findall(ANSWER_PATTERN, response_text)[-1]
-            extracted_answer = match
-            correct_answer = row["answer"].split('####')[1].strip().replace("%","")
-            score = float(check_equality(self.equality_checker, correct_answer, extracted_answer.replace("%","")))
+            matches = re.findall(ANSWER_PATTERN, response_text)
+            if not matches:
+                extracted_answer = ""
+                score = 0.0
+            else:
+                extracted_answer = matches[-1]
+                correct_answer = row["answer"].split('####')[1].strip().replace("%","")
+                score = float(check_equality(self.equality_checker, correct_answer, extracted_answer.replace("%","")))
             html = common.jinja_env.from_string(HTML_JINJA).render(
                 prompt_messages=prompt_messages,
                 next_message=dict(content=response_text, role="assistant"),
