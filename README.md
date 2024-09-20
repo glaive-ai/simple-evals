@@ -30,7 +30,7 @@ pip install -e human-eval
 
 ```bash
 cd ifeval
-python3 gen_results.py
+python3 gen_results.py --input_file data/ifeval_input_data.jsonl --output_file data/reflection_output.jsonl --model_name glaiveai/Reflection-Llama-3.1-70B --base_url http://0.0.0.0:5050/v1
 python3 -m evaluation_main \
   --input_data=./data/ifeval_input_data.jsonl \
   --input_response_data=./data/reflection_output.jsonl \

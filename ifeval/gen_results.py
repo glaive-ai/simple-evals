@@ -1,10 +1,30 @@
 import os
 import json
 import logging
+import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
 from openai import OpenAI
 
+REFLECTION_SYSTEM_MESSAGE = '''You are a world-class AI system capable of complex reasoning and reflection. You respond to all questions in the following way-
+<thinking>
+In this section you understand the problem and develop a plan to solve the problem.
+
+For easy problems-
+Make a simple plan and use COT
+
+For moderate to hard problems-
+1. Devise a step-by-step plan to solve the problem. (don't actually start solving yet, just make a plan)
+2. Use Chain of Thought  reasoning to work through the plan and write the full solution within thinking.
+
+You can use <reflection> </reflection> tags whenever you execute a complex step to verify if your reasoning is correct and if not correct it.
+
+
+</thinking>
+
+<output>
+In this section, provide the complete answer for the user based on your thinking process. Do not refer to the thinking tag. Include all relevant information and keep the response somewhat verbose, the user will not see what is in the thinking tag.
+</output>'''
 
 def load_data(filename):
     try:
@@ -22,52 +42,18 @@ def write_to_jsonl(data, filename):
     except Exception as e:
         print(e)
 
-
-
-# Configuration
-INPUT_FILE = "data/ifeval_input_data.jsonl"
-OUTPUT_FILE = "data/reflection_output.jsonl"
-MAX_WORKERS = 128
-MODEL_NAME = "glaiveai/Reflection-Llama-3.1-70B"
-MAX_TOKENS = 6000
-TEMPERATURE = 0.0
-
-# Initialize OpenAI client
-client = OpenAI(
-    base_url=os.getenv("OPENAI_BASE_URL", "http://0.0.0.0:5050/v1"),
-    api_key=os.getenv("OPENAI_API_KEY", "test"),
-)
-
-def generate_one(row):
+def generate_one(row, client, model_name, max_tokens, temperature):
     prompt = row["prompt"]
-    system = '''You are a world-class AI system capable of complex reasoning and reflection. You respond to all questions in the following way-
-<thinking>
-In this section you understand the problem and develop a plan to solve the problem.
-
-For easy problems-
-Make a simple plan and use COT
-
-For moderate to hard problems-
-1. Devise a step-by-step plan to solve the problem. (don't actually start solving yet, just make a plan)
-2. Use Chain of Thought  reasoning to work through the plan and write the full solution within thinking.
-
-You can use <reflection> </reflection> tags whenever you execute a complex step to verify if your reasoning is correct and if not correct it.
-
-</thinking>
-
-<output>
-In this section, provide the complete answer for the user based on your thinking process. Do not refer to the thinking tag. Include all relevant information and keep the response somewhat verbose, the user will not see what is in the thinking tag.
-</output>'''
-    messages = [{"role": "system", "content": system}, {"role": "user", "content": prompt}]
+    messages = [{"role": "system", "content": REFLECTION_SYSTEM_MESSAGE}, {"role": "user", "content": prompt}]
     
     try:
         response = client.chat.completions.create(
-            model=MODEL_NAME,
+            model=model_name,
             messages=messages,
-            temperature=TEMPERATURE,
-            max_tokens=MAX_TOKENS,
+            temperature=temperature,
+            max_tokens=max_tokens,
             stream=False,
-            extra_body={"skip_special_tokens": False},
+            extra_body={"skip_special_tokens": True},
         )
         
         output = response.choices[0].message.content
@@ -76,26 +62,42 @@ In this section, provide the complete answer for the user based on your thinking
             "response": output.split("<output>")[1].replace("</output>", "").strip() if "<output>" in output else output
         }
     except Exception as e:
+        print(e)
         return None
 
-def main():
+def main(args):
     print("Starting evaluation process")
     
-    data = load_data(INPUT_FILE)
+    data = load_data(args.input_file)
     if not data:
         print("No data loaded. Exiting.")
         return
 
+    client = OpenAI(
+        base_url=args.base_url,
+        api_key=os.getenv("OPENAI_API_KEY", "test"),
+    )
+
     responses = []
-    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        future_to_row = {executor.submit(generate_one, row): row for row in data}
+    with ThreadPoolExecutor(max_workers=args.max_workers) as executor:
+        future_to_row = {executor.submit(generate_one, row, client, args.model_name, args.max_tokens, args.temperature): row for row in data}
         for future in tqdm(as_completed(future_to_row), total=len(data), desc="Generating responses"):
             result = future.result()
             if result is not None:
                 responses.append(result)
 
-    write_to_jsonl(responses, OUTPUT_FILE)
+    write_to_jsonl(responses, args.output_file)
     print("Evaluation process completed")
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="OpenAI API script with customizable parameters")
+    parser.add_argument("--input_file", default="data/ifeval_input_data.jsonl", help="Input file path")
+    parser.add_argument("--output_file", default="data/reflection_output.jsonl", help="Output file path")
+    parser.add_argument("--max_workers", type=int, default=128, help="Maximum number of worker threads")
+    parser.add_argument("--model_name", default="glaiveai/Reflection-Llama-3.1-70B", help="Model name")
+    parser.add_argument("--max_tokens", type=int, default=6000, help="Maximum number of tokens")
+    parser.add_argument("--temperature", type=float, default=0.0, help="Temperature for text generation")
+    parser.add_argument("--base_url", default="http://0.0.0.0:5050/v1", help="Base URL for the API")
+
+    args = parser.parse_args()
+    main(args)
