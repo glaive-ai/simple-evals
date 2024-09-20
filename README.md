@@ -36,3 +36,5 @@ python3 -m evaluation_main \
   --input_response_data=./data/reflection_output.jsonl \
   --output_dir=./data/
 ```
+
+You can pass --no-reflection arg to use a generic system prompt instead of the Reflection system prompt.

@@ -19,12 +19,13 @@ For moderate to hard problems-
 
 You can use <reflection> </reflection> tags whenever you execute a complex step to verify if your reasoning is correct and if not correct it.
 
-
 </thinking>
 
 <output>
 In this section, provide the complete answer for the user based on your thinking process. Do not refer to the thinking tag. Include all relevant information and keep the response somewhat verbose, the user will not see what is in the thinking tag.
 </output>'''
+
+GENERIC_SYSTEM_MESSAGE = "You are a helpful assistant. Provide clear and concise answers to the user's questions."
 
 def load_data(filename):
     try:
@@ -42,9 +43,10 @@ def write_to_jsonl(data, filename):
     except Exception as e:
         print(e)
 
-def generate_one(row, client, model_name, max_tokens, temperature):
+def generate_one(row, client, model_name, max_tokens, temperature, use_reflection):
     prompt = row["prompt"]
-    messages = [{"role": "system", "content": REFLECTION_SYSTEM_MESSAGE}, {"role": "user", "content": prompt}]
+    system_message = REFLECTION_SYSTEM_MESSAGE if use_reflection else GENERIC_SYSTEM_MESSAGE
+    messages = [{"role": "system", "content": system_message}, {"role": "user", "content": prompt}]
     
     try:
         response = client.chat.completions.create(
@@ -59,7 +61,7 @@ def generate_one(row, client, model_name, max_tokens, temperature):
         output = response.choices[0].message.content
         return {
             "prompt": prompt,
-            "response": output.split("<output>")[1].replace("</output>", "").strip() if "<output>" in output else output
+            "response": output.split("<output>")[1].replace("</output>", "").strip() if use_reflection and "<output>" in output else output
         }
     except Exception as e:
         print(e)
@@ -67,6 +69,7 @@ def generate_one(row, client, model_name, max_tokens, temperature):
 
 def main(args):
     print("Starting evaluation process")
+    print(f"Reflection mode: {'ON' if args.use_reflection else 'OFF'}")
     
     data = load_data(args.input_file)
     if not data:
@@ -80,7 +83,7 @@ def main(args):
 
     responses = []
     with ThreadPoolExecutor(max_workers=args.max_workers) as executor:
-        future_to_row = {executor.submit(generate_one, row, client, args.model_name, args.max_tokens, args.temperature): row for row in data}
+        future_to_row = {executor.submit(generate_one, row, client, args.model_name, args.max_tokens, args.temperature, args.use_reflection): row for row in data}
         for future in tqdm(as_completed(future_to_row), total=len(data), desc="Generating responses"):
             result = future.result()
             if result is not None:
@@ -98,6 +101,8 @@ if __name__ == "__main__":
     parser.add_argument("--max_tokens", type=int, default=6000, help="Maximum number of tokens")
     parser.add_argument("--temperature", type=float, default=0.0, help="Temperature for text generation")
     parser.add_argument("--base_url", default="http://0.0.0.0:5050/v1", help="Base URL for the API")
+    parser.add_argument("--no-reflection", dest="use_reflection", action="store_false", help="Disable reflection mode (enabled by default)")
+    parser.set_defaults(use_reflection=True)
 
     args = parser.parse_args()
     main(args)
