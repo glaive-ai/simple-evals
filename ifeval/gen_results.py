@@ -55,7 +55,7 @@ def generate_one(row, client, model_name, max_tokens, temperature, use_reflectio
             temperature=temperature,
             max_tokens=max_tokens,
             stream=False,
-            extra_body={"skip_special_tokens": True},
+            extra_body={"skip_special_tokens": False},
         )
         
         output = response.choices[0].message.content
