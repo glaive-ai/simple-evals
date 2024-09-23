@@ -34,7 +34,7 @@ def main():
 
     # init your client
     client = OpenAI(
-    base_url="http://192.222.54.40:5050/v1",
+    base_url="http://0.0.0.0:5050/v1",
     api_key="test",
     )
 
