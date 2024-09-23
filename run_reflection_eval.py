@@ -1,5 +1,7 @@
 import json
 import time
+import argparse
+import sys
 
 import pandas as pd
 
@@ -23,29 +25,42 @@ from sampler.chat_completion_sampler import OPENAI_SYSTEM_MESSAGE_API
 def main():
     debug = True
 
+    parser = argparse.ArgumentParser(description='Run evaluations on selected samplers and evals.')
+    parser.add_argument('samplers', nargs='*', default=['reflection_70b'], help='List of samplers to run')
+    parser.add_argument('--evals', nargs='+', choices=['mmlu', 'humaneval', 'gpqa', 'gsm8k', 'math'], 
+                        default=['mmlu', 'humaneval', 'gpqa', 'gsm8k', 'math'],
+                        help='List of evaluations to run')
+    args = parser.parse_args()
+
     # init your client
     client = OpenAI(
-    base_url="http://0.0.0.0:5050/v1",
+    base_url="http://192.222.54.40:5050/v1",
     api_key="test",
     )
 
-    samplers = {
+    all_samplers = {
         "reflection_70b": ChatCompletionSampler(
             model="glaiveai/Reflection-Llama-3.1-70B",
             system_message=REFLECTION_SYSTEM_MESSAGE,
             client=client
         ),
-        # "llama_3.1_70b": ChatCompletionSampler(
-        #     model="meta-llama/Meta-Llama-3.1-70B-Instruct",
-        #     system_message=OPENAI_SYSTEM_MESSAGE_API,
-        #     client=client
-        # ),
-        # "llama_3.1_70b_reflection_prompt": ChatCompletionSampler(
-        #     model="meta-llama/Meta-Llama-3.1-70B-Instruct",
-        #     system_message=REFLECTION_SYSTEM_MESSAGE,
-        #     client=client
-        # ),
+        "llama_3.1_70b": ChatCompletionSampler(
+            model="meta-llama/Meta-Llama-3.1-70B-Instruct",
+            system_message=OPENAI_SYSTEM_MESSAGE_API,
+            client=client
+        ),
+        "llama_3.1_70b_reflection_prompt": ChatCompletionSampler(
+            model="meta-llama/Meta-Llama-3.1-70B-Instruct",
+            system_message=REFLECTION_SYSTEM_MESSAGE,
+            client=client
+        ),
     }
+
+    samplers = {k: v for k, v in all_samplers.items() if k in args.samplers}
+
+    if not samplers:
+        print("Error: No valid samplers selected. Please choose from:", ", ".join(all_samplers.keys()))
+        sys.exit(1)
 
     equality_checker = CheckerSampler(model="gpt-4-turbo-preview")
     # ^^^ used for fuzzy matching, just for math
@@ -69,8 +84,9 @@ def main():
                 raise Exception(f"Unrecoginized eval type: {eval_name}")
 
     evals = {
-        eval_name: get_evals(eval_name) for eval_name in ["mmlu","humaneval","gpqa","gsm8k","math"]
+        eval_name: get_evals(eval_name) for eval_name in args.evals
     }
+
     debug_suffix = "_DEBUG" if debug else ""
     mergekey2resultpath = {}
     for sampler_name, sampler in samplers.items():
